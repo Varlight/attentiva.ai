@@ -23,27 +23,27 @@ export function TranscriptDisplay({ messages, className }: TranscriptDisplayProp
   }, [messages]);
 
   return (
-    <ScrollArea className={cn("h-[400px] rounded-md border", className)}>
-      <div className="p-4 space-y-4" ref={scrollRef}>
+    <ScrollArea className={cn("h-[calc(100vh-400px)] rounded-lg border-0", className)}>
+      <div className="p-4 space-y-3" ref={scrollRef}>
         {messages.map((message) => (
           <div
             key={message.id}
             className={cn(
-              "flex flex-col max-w-[80%] space-y-1",
+              "flex flex-col max-w-[85%] space-y-1",
               message.type === "incoming" ? "ml-0" : "ml-auto"
             )}
           >
             <div
               className={cn(
-                "rounded-lg px-4 py-2 animate-fade-in",
+                "rounded-2xl px-4 py-2 animate-fade-in text-sm",
                 message.type === "incoming"
                   ? "bg-neutral-100 text-neutral-900"
-                  : "bg-primary text-primary-foreground ml-auto"
+                  : "bg-blue-500 text-white ml-auto"
               )}
             >
               {message.text}
             </div>
-            <span className="text-xs text-neutral-500">{message.timestamp}</span>
+            <span className="text-[10px] text-neutral-400">{message.timestamp}</span>
           </div>
         ))}
       </div>

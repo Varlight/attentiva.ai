@@ -33,26 +33,27 @@ export function CallControls({ onCallStart, onCallEnd, isCallActive }: CallContr
         <Button
           onClick={handleStartCall}
           disabled={isRequestingMic}
-          className="bg-success hover:bg-success-hover transition-colors"
+          className="bg-success hover:bg-success-hover transition-colors rounded-full h-16 w-16 p-0"
         >
-          <PhoneCall className="mr-2 h-4 w-4" />
-          Start Call
+          <PhoneCall className="h-6 w-6" />
         </Button>
       ) : (
-        <Button
-          onClick={onCallEnd}
-          variant="destructive"
-          className="bg-danger hover:bg-danger-hover transition-colors"
-        >
-          <PhoneOff className="mr-2 h-4 w-4" />
-          End Call
-        </Button>
-      )}
-      {isCallActive && (
-        <Button variant="outline" onClick={() => toast("Reported as scam")}>
-          <AlertCircle className="mr-2 h-4 w-4" />
-          Report Scam
-        </Button>
+        <div className="flex gap-4">
+          <Button
+            onClick={onCallEnd}
+            variant="destructive"
+            className="bg-danger hover:bg-danger-hover transition-colors rounded-full h-16 w-16 p-0"
+          >
+            <PhoneOff className="h-6 w-6" />
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={() => toast("Reported as scam")}
+            className="rounded-full h-16 w-16 p-0"
+          >
+            <AlertCircle className="h-6 w-6" />
+          </Button>
+        </div>
       )}
     </div>
   );

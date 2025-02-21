@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { CallControls } from "@/components/CallControls";
 import { TranscriptDisplay } from "@/components/TranscriptDisplay";
 import { ScamMeter } from "@/components/ScamMeter";
 import { RiskAlert } from "@/components/RiskAlert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Shield, Signal, Battery, Wifi } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 
 type MessageType = {
@@ -76,54 +75,49 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50 p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <header className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-semibold">Scam Call Detection</h1>
+    <div className="min-h-screen bg-neutral-100 p-0 md:p-6">
+      <div className="mobile-container">
+        <div className="mobile-status-bar">
+          <span>9:41</span>
+          <div className="flex items-center gap-2">
+            <Signal className="h-3 w-3" />
+            <Wifi className="h-3 w-3" />
+            <Battery className="h-3 w-3" />
           </div>
-          <p className="text-neutral-600">Real-time scam detection for your safety</p>
+        </div>
+        
+        <header className="mobile-header">
+          <div className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            <h1 className="text-lg font-medium">Call Guard</h1>
+          </div>
+          <span className="text-xs text-neutral-400">Pro</span>
         </header>
 
-        <Card className="glass-panel">
-          <CardHeader className="border-b pb-4">
-            <CardTitle className="text-lg">Call Controls</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <CallControls
-              isCallActive={isCallActive}
-              onCallStart={handleCallStart}
-              onCallEnd={handleCallEnd}
-            />
-          </CardContent>
-        </Card>
+        <div className="p-4 space-y-4">
+          <Card className="glass-panel">
+            <CardContent className="p-4">
+              <CallControls
+                isCallActive={isCallActive}
+                onCallStart={handleCallStart}
+                onCallEnd={handleCallEnd}
+              />
+            </CardContent>
+          </Card>
 
-        {isCallActive && (
-          <>
-            <div className="grid gap-6 md:grid-cols-[2fr,1fr]">
+          {isCallActive && (
+            <>
               <Card className="glass-panel">
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-lg">Live Transcript</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
+                <CardContent className="p-4 space-y-4">
+                  <ScamMeter score={riskScore} />
                   <TranscriptDisplay messages={messages} />
                 </CardContent>
               </Card>
 
-              <Card className="glass-panel">
-                <CardHeader className="border-b pb-4">
-                  <CardTitle className="text-lg">Risk Analysis</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <ScamMeter score={riskScore} />
-                </CardContent>
-              </Card>
-            </div>
-
-            <RiskAlert isOpen={riskScore >= 50} score={riskScore} />
-          </>
-        )}
+              <RiskAlert isOpen={riskScore >= 50} score={riskScore} />
+            </>
+          )}
+        </div>
       </div>
       <Toaster />
     </div>
