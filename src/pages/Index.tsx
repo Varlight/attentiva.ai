@@ -52,9 +52,11 @@ export default function Index() {
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [riskScore, setRiskScore] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
-  const [currentNumber] = useState("1234567890"); // In a real app, this would come from the dialer
+  const [currentNumber] = useState("1234567890");
   const [isFlagged, setIsFlagged] = useState(false);
-  
+  const [callDuration, setCallDuration] = useState(0);
+  const [callerName] = useState("Unknown Caller");
+
   useEffect(() => {
     // Check if number is flagged
     const flaggedNumbers = JSON.parse(localStorage.getItem(FLAGGED_NUMBERS_KEY) || '[]');
@@ -66,6 +68,25 @@ export default function Index() {
       setShowWarning(true);
     }
   }, [riskScore]);
+
+  // Call duration timer
+  useEffect(() => {
+    let timer: number;
+    if (isCallActive) {
+      timer = window.setInterval(() => {
+        setCallDuration(prev => prev + 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isCallActive]);
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleFlagNumber = () => {
     const flaggedNumbers = JSON.parse(localStorage.getItem(FLAGGED_NUMBERS_KEY) || '[]');
@@ -82,6 +103,7 @@ export default function Index() {
     setMessages([]);
     setRiskScore(0);
     setShowWarning(false);
+    setCallDuration(0);
     if (isFlagged) {
       toast.warning("This number was previously flagged as suspicious");
     }
@@ -91,6 +113,7 @@ export default function Index() {
     setIsCallActive(false);
     setRiskScore(0);
     setShowWarning(false);
+    setCallDuration(0);
   };
 
   return (
@@ -118,19 +141,30 @@ export default function Index() {
         <div className="p-4 space-y-4">
           <Card className={cn("glass-panel", isFlagged && "border-red-500/50")}>
             <CardContent className="p-4">
-              <div className="text-center mb-4">
-                <h2 className="text-2xl font-medium mb-1">{currentNumber}</h2>
+              <div className="text-center space-y-2">
+                {isCallActive && (
+                  <div className="text-sm text-neutral-500 animate-pulse">
+                    {formatDuration(callDuration)}
+                  </div>
+                )}
+                <h2 className="text-2xl font-medium mb-1">{callerName}</h2>
                 <p className="text-sm text-neutral-500">
-                  {isFlagged ? "Previously flagged as suspicious" : "Mobile"}
+                  {currentNumber}
+                  {isFlagged && (
+                    <span className="ml-2 text-red-500">(Suspicious)</span>
+                  )}
                 </p>
               </div>
-              <CallControls
-                isCallActive={isCallActive}
-                onCallStart={handleCallStart}
-                onCallEnd={handleCallEnd}
-                onFlag={handleFlagNumber}
-                isFlagged={isFlagged}
-              />
+
+              <div className="mt-8">
+                <CallControls
+                  isCallActive={isCallActive}
+                  onCallStart={handleCallStart}
+                  onCallEnd={handleCallEnd}
+                  onFlag={handleFlagNumber}
+                  isFlagged={isFlagged}
+                />
+              </div>
             </CardContent>
           </Card>
 
