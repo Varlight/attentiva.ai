@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { PhoneCall, PhoneOff, AlertCircle } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface CallControlsProps {
   onCallStart: () => void;
@@ -49,7 +49,7 @@ export function CallControls({ onCallStart, onCallEnd, isCallActive }: CallContr
         </Button>
       )}
       {isCallActive && (
-        <Button variant="outline" onClick={() => toast.message("Reported as scam")}>
+        <Button variant="outline" onClick={() => toast("Reported as scam")}>
           <AlertCircle className="mr-2 h-4 w-4" />
           Report Scam
         </Button>

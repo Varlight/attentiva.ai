@@ -33,8 +33,7 @@ export function ScamMeter({ score, className }: ScamMeterProps) {
       </div>
       <Progress
         value={displayScore}
-        className="h-2 transition-all duration-500"
-        indicatorClassName={cn(getColor(score), "transition-all duration-500")}
+        className={cn("h-2 transition-all duration-500", getColor(score))}
       />
     </div>
   );

@@ -6,9 +6,17 @@ import { ScamMeter } from "@/components/ScamMeter";
 import { RiskAlert } from "@/components/RiskAlert";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Shield } from "lucide-react";
+import { Toaster } from "@/components/ui/sonner";
+
+type MessageType = {
+  id: number;
+  text: string;
+  type: "incoming" | "outgoing";
+  timestamp: string;
+};
 
 // Simulated transcript messages for demo
-const generateMessage = (isIncoming: boolean) => {
+const generateMessage = (isIncoming: boolean): MessageType => {
   const scamPhrases = [
     "We detected suspicious activity",
     "Your account needs immediate attention",
@@ -30,19 +38,14 @@ const generateMessage = (isIncoming: boolean) => {
     text: isIncoming ? 
       scamPhrases[Math.floor(Math.random() * scamPhrases.length)] :
       normalPhrases[Math.floor(Math.random() * normalPhrases.length)],
-    type: isIncoming ? "incoming" : "outgoing" as const,
+    type: isIncoming ? "incoming" : "outgoing",
     timestamp: new Date().toLocaleTimeString(),
   };
 };
 
 export default function Index() {
   const [isCallActive, setIsCallActive] = useState(false);
-  const [messages, setMessages] = useState<Array<{
-    id: number;
-    text: string;
-    type: "incoming" | "outgoing";
-    timestamp: string;
-  }>>([]);
+  const [messages, setMessages] = useState<MessageType[]>([]);
   const [riskScore, setRiskScore] = useState(0);
   
   // Simulate incoming messages during call
@@ -122,6 +125,7 @@ export default function Index() {
           </>
         )}
       </div>
+      <Toaster />
     </div>
   );
 }
