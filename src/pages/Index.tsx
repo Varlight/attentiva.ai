@@ -6,6 +6,7 @@ import { RiskAlert } from "@/components/RiskAlert";
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Signal, Battery, Wifi } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 type MessageType = {
   id: number;
@@ -42,36 +43,52 @@ const generateMessage = (isIncoming: boolean): MessageType => {
   };
 };
 
+const FLAGGED_NUMBERS_KEY = 'flaggedNumbers';
+
 export default function Index() {
   const [isCallActive, setIsCallActive] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [riskScore, setRiskScore] = useState(0);
+  const [showWarning, setShowWarning] = useState(false);
+  const [currentNumber] = useState("1234567890"); // In a real app, this would come from the dialer
+  const [isFlagged, setIsFlagged] = useState(false);
   
-  // Simulate incoming messages during call
   useEffect(() => {
-    let messageInterval: NodeJS.Timeout;
-    
-    if (isCallActive) {
-      messageInterval = setInterval(() => {
-        setMessages(prev => [...prev, generateMessage(true)]);
-        setRiskScore(prev => Math.min(100, prev + Math.random() * 15));
-      }, 3000);
-    }
+    // Check if number is flagged
+    const flaggedNumbers = JSON.parse(localStorage.getItem(FLAGGED_NUMBERS_KEY) || '[]');
+    setIsFlagged(flaggedNumbers.includes(currentNumber));
+  }, [currentNumber]);
 
-    return () => {
-      if (messageInterval) clearInterval(messageInterval);
-    };
-  }, [isCallActive]);
+  useEffect(() => {
+    if (riskScore >= 50 && !showWarning) {
+      setShowWarning(true);
+    }
+  }, [riskScore]);
+
+  const handleFlagNumber = () => {
+    const flaggedNumbers = JSON.parse(localStorage.getItem(FLAGGED_NUMBERS_KEY) || '[]');
+    if (!flaggedNumbers.includes(currentNumber)) {
+      flaggedNumbers.push(currentNumber);
+      localStorage.setItem(FLAGGED_NUMBERS_KEY, JSON.stringify(flaggedNumbers));
+      setIsFlagged(true);
+      toast.success("Number has been flagged");
+    }
+  };
 
   const handleCallStart = () => {
     setIsCallActive(true);
     setMessages([]);
     setRiskScore(0);
+    setShowWarning(false);
+    if (isFlagged) {
+      toast.warning("This number was previously flagged as suspicious");
+    }
   };
 
   const handleCallEnd = () => {
     setIsCallActive(false);
     setRiskScore(0);
+    setShowWarning(false);
   };
 
   return (
@@ -91,32 +108,44 @@ export default function Index() {
             <Shield className="h-5 w-5" />
             <h1 className="text-lg font-medium">Call Guard</h1>
           </div>
-          <span className="text-xs text-neutral-400">Pro</span>
+          {isFlagged && (
+            <span className="text-xs px-2 py-1 bg-red-500 rounded-full">Flagged</span>
+          )}
         </header>
 
         <div className="p-4 space-y-4">
-          <Card className="glass-panel">
+          <Card className={cn("glass-panel", isFlagged && "border-red-500/50")}>
             <CardContent className="p-4">
+              <div className="text-center mb-4">
+                <h2 className="text-2xl font-medium mb-1">{currentNumber}</h2>
+                <p className="text-sm text-neutral-500">
+                  {isFlagged ? "Previously flagged as suspicious" : "Mobile"}
+                </p>
+              </div>
               <CallControls
                 isCallActive={isCallActive}
                 onCallStart={handleCallStart}
                 onCallEnd={handleCallEnd}
+                onFlag={handleFlagNumber}
+                isFlagged={isFlagged}
               />
             </CardContent>
           </Card>
 
           {isCallActive && (
-            <>
-              <Card className="glass-panel">
-                <CardContent className="p-4 space-y-4">
-                  <ScamMeter score={riskScore} />
-                  <TranscriptDisplay messages={messages} />
-                </CardContent>
-              </Card>
-
-              <RiskAlert isOpen={riskScore >= 50} score={riskScore} />
-            </>
+            <Card className="glass-panel">
+              <CardContent className="p-4 space-y-4">
+                <ScamMeter score={riskScore} />
+                <TranscriptDisplay messages={messages} />
+              </CardContent>
+            </Card>
           )}
+
+          <RiskAlert 
+            isOpen={showWarning} 
+            score={riskScore} 
+            onIgnore={() => setShowWarning(false)} 
+          />
         </div>
       </div>
       <Toaster />
