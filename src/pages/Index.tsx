@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { CallControls } from "@/components/CallControls";
 import { TranscriptDisplay } from "@/components/TranscriptDisplay";
@@ -7,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Shield, Signal, Battery, Wifi } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 type MessageType = {
   id: number;
