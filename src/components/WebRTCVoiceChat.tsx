@@ -37,7 +37,7 @@ const WebRTCVoiceChat: React.FC<WebRTCVoiceChatProps> = ({ onTranscript, onCallS
 
     ws.current.onclose = () => {
       setConnectionStatus("disconnected");
-      setError("WebSocket connection closed");
+      setError("");
     };
 
     ws.current.onerror = (error) => {
