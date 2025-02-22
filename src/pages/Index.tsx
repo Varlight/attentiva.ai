@@ -182,7 +182,7 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-0 md:p-6">
-      <div className="mobile-container">
+      <div className="mobile-container relative">
         <div className="mobile-status-bar">
           <span>9:41</span>
           <div className="flex items-center gap-2">
@@ -241,11 +241,13 @@ export default function Index() {
             </CardContent>
           </Card>
 
-          <RiskAlert 
-            isOpen={showWarning} 
-            score={riskScore} 
-            onIgnore={() => setShowWarning(false)} 
-          />
+          <div className="relative">
+            <RiskAlert 
+              isOpen={showWarning} 
+              score={riskScore} 
+              onIgnore={() => setShowWarning(false)} 
+            />
+          </div>
         </div>
       </div>
       <Toaster />

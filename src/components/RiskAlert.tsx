@@ -12,7 +12,7 @@ interface RiskAlertProps {
 export function RiskAlert({ isOpen, score, onIgnore }: RiskAlertProps) {
   return (
     <AlertDialog open={isOpen}>
-      <AlertDialogContent className="bg-danger/95 text-white animate-risk-alert fixed bottom-4 left-4 right-4 p-4 rounded-xl max-w-none md:max-w-md md:mx-auto">
+      <AlertDialogContent className="bg-danger text-white fixed bottom-4 left-4 right-4 p-4 rounded-xl max-w-none">
         <AlertDialogHeader className="space-y-2">
           <AlertDialogTitle className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
