@@ -4,7 +4,7 @@ import { TranscriptDisplay } from "@/components/TranscriptDisplay";
 import { ScamMeter } from "@/components/ScamMeter";
 import { RiskAlert } from "@/components/RiskAlert";
 import { Card, CardContent } from "@/components/ui/card";
-import { Shield, Signal, Battery, Wifi } from "lucide-react";
+import { Shield, Signal, Battery, Wifi, Phone, PhoneOff } from "lucide-react";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -42,37 +42,22 @@ const SIMULATED_SCAM_MESSAGES = [
   "We need you to transfer funds to a secure account",
 ];
 
-const generateMessage = (isIncoming: boolean): MessageType => {
-  if (isIncoming) {
-    const randomMessage = SIMULATED_SCAM_MESSAGES[Math.floor(Math.random() * SIMULATED_SCAM_MESSAGES.length)];
-    return {
-      id: Date.now(),
-      text: randomMessage,
-      type: "incoming",
-      timestamp: new Date().toLocaleTimeString(),
-    };
-  }
-
-  const normalPhrases = [
-    "I don't share personal information",
-    "I need to verify this call first",
-    "I'll call my bank directly",
-    "I don't recognize this number",
-    "Please remove me from your list",
-  ];
-
-  return {
-    id: Date.now(),
-    text: normalPhrases[Math.floor(Math.random() * normalPhrases.length)],
-    type: "outgoing",
-    timestamp: new Date().toLocaleTimeString(),
-  };
-};
+const NATURAL_CONVERSATION = [
+  { text: "Hello, this is Steve from your bank's security department.", type: "incoming" },
+  { text: "Hi, how can I help you?", type: "outgoing" },
+  { text: "We've noticed some suspicious activity in your account.", type: "incoming" },
+  { text: "I don't discuss account details over the phone.", type: "outgoing" },
+  { text: "This is urgent, we need your OTP to verify your identity.", type: "incoming" },
+  { text: "I'll contact my bank directly through their official number.", type: "outgoing" },
+  { text: "Please, this is an emergency regarding your credit card.", type: "incoming" },
+  { text: "I'm going to end this call now.", type: "outgoing" },
+];
 
 const FLAGGED_NUMBERS_KEY = 'flaggedNumbers';
 
 export default function Index() {
   const [isCallActive, setIsCallActive] = useState(false);
+  const [isRinging, setIsRinging] = useState(false);
   const [messages, setMessages] = useState<MessageType[]>([]);
   const [riskScore, setRiskScore] = useState(0);
   const [showWarning, setShowWarning] = useState(false);
@@ -80,7 +65,7 @@ export default function Index() {
   const [isFlagged, setIsFlagged] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [callerName] = useState("Unknown Caller");
-  const [isIncomingCall, setIsIncomingCall] = useState(false);
+  const [messageIndex, setMessageIndex] = useState(0);
 
   const calculateRiskScore = (text: string): number => {
     let score = 0;
@@ -122,17 +107,20 @@ export default function Index() {
     let messageTimer: number;
     if (isCallActive) {
       messageTimer = window.setInterval(() => {
-        const newMessage = generateMessage(true);
+        const newMessage = generateMessage(messageIndex);
         setMessages(prev => [...prev, newMessage]);
+        setMessageIndex(prev => prev + 1);
         
-        const newScore = calculateRiskScore(newMessage.text);
-        setRiskScore(prev => Math.min(prev + newScore, 100));
-      }, 5000);
+        if (newMessage.type === "incoming") {
+          const newScore = calculateRiskScore(newMessage.text);
+          setRiskScore(prev => Math.min(prev + newScore, 100));
+        }
+      }, 3000);
     }
     return () => {
       if (messageTimer) clearInterval(messageTimer);
     };
-  }, [isCallActive]);
+  }, [isCallActive, messageIndex]);
 
   useEffect(() => {
     let timer: number;
@@ -146,30 +134,20 @@ export default function Index() {
     };
   }, [isCallActive]);
 
-  useEffect(() => {
-    const incomingCallTimer = setInterval(() => {
-      if (!isCallActive && !isIncomingCall) {
-        setIsIncomingCall(true);
-        toast("Incoming Call", {
-          description: `${callerName} - ${currentNumber}`,
-          duration: 10000,
-        });
-        if (isFlagged) {
-          setTimeout(() => {
-            setIsIncomingCall(false);
-            toast.error("Automatically blocked flagged number");
-          }, 2000);
-        }
-      }
-    }, 30000);
-
-    return () => clearInterval(incomingCallTimer);
-  }, [isCallActive, isIncomingCall, isFlagged, callerName, currentNumber]);
-
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const generateMessage = (index: number): MessageType => {
+    const message = NATURAL_CONVERSATION[index % NATURAL_CONVERSATION.length];
+    return {
+      id: Date.now(),
+      text: message.text,
+      type: message.type as "incoming" | "outgoing",
+      timestamp: new Date().toLocaleTimeString(),
+    };
   };
 
   const handleFlagNumber = () => {
@@ -184,24 +162,22 @@ export default function Index() {
   };
 
   const handleCallStart = () => {
-    if (isFlagged) {
-      toast.error("Cannot start call with flagged number");
-      return;
-    }
-    setIsCallActive(true);
-    setMessages([]);
-    setRiskScore(0);
-    setShowWarning(false);
-    setCallDuration(0);
-    setIsIncomingCall(false);
+    setIsRinging(true);
+    setTimeout(() => {
+      setIsRinging(false);
+      setIsCallActive(true);
+      setMessages([]);
+      setRiskScore(0);
+      setShowWarning(false);
+      setCallDuration(0);
+      setMessageIndex(0);
+    }, 2000);
   };
 
   const handleCallEnd = () => {
     setIsCallActive(false);
-    setRiskScore(0);
-    setShowWarning(false);
+    setIsRinging(false);
     setCallDuration(0);
-    setIsIncomingCall(false);
   };
 
   return (
@@ -221,28 +197,37 @@ export default function Index() {
             <Shield className="h-5 w-5" />
             <h1 className="text-lg font-medium">Call Guard</h1>
           </div>
-          {isFlagged && (
-            <span className="text-xs px-2 py-1 bg-red-500 rounded-full">Flagged</span>
-          )}
         </header>
 
         <div className="p-4 space-y-4">
           <Card className={cn("glass-panel", isFlagged && "border-red-500/50")}>
             <CardContent className="p-4">
               <div className="text-center space-y-2">
+                {isRinging && (
+                  <div className="text-lg font-medium text-neutral-600 animate-pulse">
+                    Ringing...
+                  </div>
+                )}
                 {isCallActive && (
-                  <div className="text-sm text-neutral-500 animate-pulse">
-                    {formatDuration(callDuration)}
+                  <div className="text-sm font-medium text-green-600">
+                    Call in progress - {formatDuration(callDuration)}
                   </div>
                 )}
                 <h2 className="text-2xl font-medium mb-1">{callerName}</h2>
                 <p className="text-sm text-neutral-500">
                   {currentNumber}
                   {isFlagged && (
-                    <span className="ml-2 text-red-500">(Suspicious)</span>
+                    <span className="ml-2 text-red-500">(Flagged)</span>
                   )}
                 </p>
               </div>
+
+              {isCallActive && messages.length > 0 && (
+                <div className="mt-4 mb-8">
+                  <TranscriptDisplay messages={messages} />
+                  <ScamMeter score={riskScore} className="mt-4" />
+                </div>
+              )}
 
               <div className="mt-8">
                 <CallControls
@@ -255,15 +240,6 @@ export default function Index() {
               </div>
             </CardContent>
           </Card>
-
-          {isCallActive && (
-            <Card className="glass-panel">
-              <CardContent className="p-4 space-y-4">
-                <ScamMeter score={riskScore} />
-                <TranscriptDisplay messages={messages} />
-              </CardContent>
-            </Card>
-          )}
 
           <RiskAlert 
             isOpen={showWarning} 
