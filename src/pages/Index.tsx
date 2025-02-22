@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { CallControls } from "@/components/CallControls";
 import { TranscriptDisplay } from "@/components/TranscriptDisplay";
@@ -17,30 +16,55 @@ type MessageType = {
   timestamp: string;
 };
 
-// Simulated transcript messages for demo
+const RISK_WORDS = {
+  otp: 20,
+  bank: 15,
+  urgent: 25,
+  account: 15,
+  verify: 20,
+  immediate: 25,
+  suspicious: 20,
+  password: 30,
+  "credit card": 35,
+  "social security": 40,
+  transfer: 20,
+  emergency: 25,
+};
+
+const RISK_THRESHOLD = 50;
+const AUTO_DISCONNECT_THRESHOLD = 75;
+
+const SIMULATED_SCAM_MESSAGES = [
+  "Hello, this is an urgent call regarding your bank account",
+  "We've detected suspicious activity and need your immediate verification",
+  "Please provide your OTP to verify your identity",
+  "This is an emergency regarding your credit card",
+  "We need you to transfer funds to a secure account",
+];
+
 const generateMessage = (isIncoming: boolean): MessageType => {
-  const scamPhrases = [
-    "We detected suspicious activity",
-    "Your account needs immediate attention",
-    "Verify your identity now",
-    "Time-sensitive matter regarding your account",
-    "You must act now to prevent",
-  ];
-  
+  if (isIncoming) {
+    const randomMessage = SIMULATED_SCAM_MESSAGES[Math.floor(Math.random() * SIMULATED_SCAM_MESSAGES.length)];
+    return {
+      id: Date.now(),
+      text: randomMessage,
+      type: "incoming",
+      timestamp: new Date().toLocaleTimeString(),
+    };
+  }
+
   const normalPhrases = [
-    "How can I help you today?",
-    "Could you please explain more?",
-    "I understand your concern",
-    "Let me check that for you",
-    "Is there anything else you need?",
+    "I don't share personal information",
+    "I need to verify this call first",
+    "I'll call my bank directly",
+    "I don't recognize this number",
+    "Please remove me from your list",
   ];
 
   return {
     id: Date.now(),
-    text: isIncoming ? 
-      scamPhrases[Math.floor(Math.random() * scamPhrases.length)] :
-      normalPhrases[Math.floor(Math.random() * normalPhrases.length)],
-    type: isIncoming ? "incoming" : "outgoing",
+    text: normalPhrases[Math.floor(Math.random() * normalPhrases.length)],
+    type: "outgoing",
     timestamp: new Date().toLocaleTimeString(),
   };
 };
@@ -56,20 +80,60 @@ export default function Index() {
   const [isFlagged, setIsFlagged] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [callerName] = useState("Unknown Caller");
+  const [isIncomingCall, setIsIncomingCall] = useState(false);
+
+  const calculateRiskScore = (text: string): number => {
+    let score = 0;
+    const lowerText = text.toLowerCase();
+    
+    Object.entries(RISK_WORDS).forEach(([word, value]) => {
+      if (lowerText.includes(word.toLowerCase())) {
+        score += value;
+      }
+    });
+
+    if (lowerText.includes("urgent") && lowerText.includes("bank")) {
+      score += 30;
+    }
+    if (lowerText.includes("verify") && lowerText.includes("otp")) {
+      score += 40;
+    }
+
+    return Math.min(score, 100);
+  };
 
   useEffect(() => {
-    // Check if number is flagged
     const flaggedNumbers = JSON.parse(localStorage.getItem(FLAGGED_NUMBERS_KEY) || '[]');
     setIsFlagged(flaggedNumbers.includes(currentNumber));
   }, [currentNumber]);
 
   useEffect(() => {
-    if (riskScore >= 50 && !showWarning) {
+    if (riskScore >= RISK_THRESHOLD && !showWarning) {
       setShowWarning(true);
+    }
+    
+    if (riskScore >= AUTO_DISCONNECT_THRESHOLD) {
+      handleCallEnd();
+      toast.error("Call automatically terminated due to high risk score");
     }
   }, [riskScore]);
 
-  // Call duration timer
+  useEffect(() => {
+    let messageTimer: number;
+    if (isCallActive) {
+      messageTimer = window.setInterval(() => {
+        const newMessage = generateMessage(true);
+        setMessages(prev => [...prev, newMessage]);
+        
+        const newScore = calculateRiskScore(newMessage.text);
+        setRiskScore(prev => Math.min(prev + newScore, 100));
+      }, 5000);
+    }
+    return () => {
+      if (messageTimer) clearInterval(messageTimer);
+    };
+  }, [isCallActive]);
+
   useEffect(() => {
     let timer: number;
     if (isCallActive) {
@@ -81,6 +145,26 @@ export default function Index() {
       if (timer) clearInterval(timer);
     };
   }, [isCallActive]);
+
+  useEffect(() => {
+    const incomingCallTimer = setInterval(() => {
+      if (!isCallActive && !isIncomingCall) {
+        setIsIncomingCall(true);
+        toast("Incoming Call", {
+          description: `${callerName} - ${currentNumber}`,
+          duration: 10000,
+        });
+        if (isFlagged) {
+          setTimeout(() => {
+            setIsIncomingCall(false);
+            toast.error("Automatically blocked flagged number");
+          }, 2000);
+        }
+      }
+    }, 30000);
+
+    return () => clearInterval(incomingCallTimer);
+  }, [isCallActive, isIncomingCall, isFlagged, callerName, currentNumber]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -95,18 +179,21 @@ export default function Index() {
       localStorage.setItem(FLAGGED_NUMBERS_KEY, JSON.stringify(flaggedNumbers));
       setIsFlagged(true);
       toast.success("Number has been flagged");
+      handleCallEnd();
     }
   };
 
   const handleCallStart = () => {
+    if (isFlagged) {
+      toast.error("Cannot start call with flagged number");
+      return;
+    }
     setIsCallActive(true);
     setMessages([]);
     setRiskScore(0);
     setShowWarning(false);
     setCallDuration(0);
-    if (isFlagged) {
-      toast.warning("This number was previously flagged as suspicious");
-    }
+    setIsIncomingCall(false);
   };
 
   const handleCallEnd = () => {
@@ -114,6 +201,7 @@ export default function Index() {
     setRiskScore(0);
     setShowWarning(false);
     setCallDuration(0);
+    setIsIncomingCall(false);
   };
 
   return (
